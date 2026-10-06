@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    // Players: anyone can read the leaderboard. You can edit your own profile.
+    // Any signed-in user can update the stat fields, because the site reports scores from the browser.
+    match /users/{uid} {
+      allow read: if true;
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && (
+        request.auth.uid == uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['elo', 'wins', 'losses', 'streak'])
+      );
+      allow delete: if false;
+    }
+
+    // Open match posts (the Match Finder board).
+    // - Anyone can read.
+    // - Max 3 open posts per person: a post's id must be <uid>_1, <uid>_2 or <uid>_3.
+    // - The host can cancel their own post. Once someone accepts, the post is moved to active_matches
+    //   (deleted from here), so it can't be cancelled after that.
+    //   Older posts that have no hostUid are matched to the host by username.
+    // - Another player can delete a post only in the same batch that creates its active_matches copy (accepting).
+    match /matches/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.hostUid == request.auth.uid
+        && id in [request.auth.uid + '_1', request.auth.uid + '_2', request.auth.uid + '_3'];
+      allow update: if false;
+      allow delete: if signedIn() && (
+        resource.data.get('hostUid', '') == request.auth.uid
+        || (
+          !('hostUid' in resource.data)
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('gamertag', '') == resource.data.host
+        )
+        || (
+          existsAfter(/databases/$(database)/documents/active_matches/$(id))
+          && getAfter(/databases/$(database)/documents/active_matches/$(id)).data.acceptedByUid == request.auth.uid
+        )
+      );
+    }
+
+    // Accepted matches with the maps and ruleset both players agreed to.
+    // - Created only by the accepting player, and only copying the terms from the open post.
+    // - Only the two players can read it.
+    // - The host can mark the "accepted" notice as seen; either player can mark it completed.
+    // - Nobody can cancel or delete it.
+    match /active_matches/{id} {
+      allow read: if signedIn() && request.auth.uid in resource.data.players;
+      allow create: if signedIn()
+        && request.resource.data.acceptedByUid == request.auth.uid
+        && request.resource.data.hostUid != request.auth.uid
+        && request.resource.data.players == [request.resource.data.hostUid, request.auth.uid]
+        && exists(/databases/$(database)/documents/matches/$(id))
+        && request.resource.data.host == get(/databases/$(database)/documents/matches/$(id)).data.host
+        && request.resource.data.maps == get(/databases/$(database)/documents/matches/$(id)).data.maps
+        && request.resource.data.rules == get(/databases/$(database)/documents/matches/$(id)).data.rules
+        && request.resource.data.series == get(/databases/$(database)/documents/matches/$(id)).data.series
+        && request.resource.data.console == get(/databases/$(database)/documents/matches/$(id)).data.console
+        && request.resource.data.hostUid == get(/databases/$(database)/documents/matches/$(id)).data.get('hostUid', request.resource.data.hostUid);
+      allow update: if signedIn() && request.auth.uid in resource.data.players && (
+        (resource.data.hostUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hostSeen']))
+        ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completed', 'completedAt'])
+      );
+      allow delete: if false;
+    }
+
+    // Score reports waiting for the other player to confirm.
+    match /pending_reports/{id} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    // Finished matches (used for the repeat-opponent limit).
+    match /match_results/{id} {
+      allow read, create: if signedIn();
+    }
+
+    // Disputes and flagged pairings: players can file them, only you (in the console) read them.
+    match /reports/{id} {
+      allow create: if signedIn();
+      allow read: if false;
+    }
+  }
+}

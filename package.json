@@ -1,0 +1,7 @@
+{
+  "name": "1v1lb",
+  "private": true,
+  "scripts": {
+    "build": "node build-config.js"
+  }
+}

@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1v1LB.com - BO2 Ranks</title>
+    <!-- Firebase V8 SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        /* 1v1LB Authentic Dark Theme */
+        :root {
+            --bg-body: #111111;
+            --bg-panel: #1c1c1c;
+            --bg-header: #0d0d0d;
+            --accent: #ff9900;
+            --text-main: #cccccc;
+            --text-light: #ffffff;
+            --border: #333333;
+        }
+
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; }
+        
+        /* Header & Nav */
+        header { background-color: var(--bg-header); border-bottom: 2px solid var(--accent); padding: 20px; text-align: center; }
+        header h1 { margin: 0; color: var(--text-light); font-size: 2.5rem; letter-spacing: 2px; }
+        header h1 span { color: var(--accent); }
+        
+        nav { display: flex; justify-content: center; background: #000; padding: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        nav button { background: none; border: none; color: var(--text-main); font-size: 16px; margin: 5px 15px; cursor: pointer; text-transform: uppercase; font-weight: bold; }
+        nav button:hover, nav button.active { color: var(--accent); }
+
+        .container { max-width: 1000px; margin: 20px auto; padding: 20px; }
+        
+        /* User Bar */
+        #user-bar { background: var(--bg-panel); padding: 10px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; border-left: 4px solid var(--accent); }
+
+        /* Email verification banner */
+        #verify-bar { display: none; background: #2a1f00; border-left: 4px solid #ffb300; padding: 10px 20px; margin-bottom: 20px; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; color: #ffd666; }
+        
+        /* Problems box (shown only when something is wrong) */
+        #diag { display: none; background: #2a0d0d; border-left: 4px solid #ff1744; padding: 10px 20px; margin-bottom: 20px; color: #ff8a80; line-height: 1.5; }
+        #diag div + div { margin-top: 8px; }
+        /* Notifications (match accepted etc.) */
+        #notice .note { background: #0d2a14; border-left: 4px solid #00e676; padding: 10px 20px; margin-bottom: 12px; color: #b9f6ca; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; line-height: 1.5; }
+        #notice .note.pending { background: #2a1f00; border-left-color: #ffb300; color: #ffd666; }
+        .my-matches { background: #232323; border-left: 3px solid #00e676; padding: 12px 20px; margin-bottom: 20px; }
+        .my-matches h3 { margin: 0 0 8px; border: none; padding: 0; color: #00e676; }
+        .my-matches .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-top: 1px dashed var(--border); }
+        .btn-small { padding: 5px 9px; }
+        .social-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 6px 0 18px; }
+        .btn-social { flex: 1; min-width: 200px; padding: 12px 15px; font-size: 13px; color: #fff; }
+        .btn-google { background: #4285f4; }
+        .btn-google:hover { background: #3367d6; }
+        .or-line { text-align: center; color: #777; font-size: 12px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .footer-link { text-align: center; margin: 10px 0 30px; font-size: 12px; }
+        .footer-link a { color: #888; cursor: pointer; text-decoration: underline; }
+
+        /* Tabs */
+        .tab { display: none; background: var(--bg-panel); padding: 20px; border: 1px solid var(--border); }
+        .tab.active { display: block; }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background-color: var(--bg-header); color: var(--accent); text-transform: uppercase; font-size: 13px; }
+        tr:hover { background-color: #252525; }
+
+        /* Buttons & Forms */
+        .btn { background-color: var(--accent); color: #000; border: none; padding: 10px 15px; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+        .btn:hover { background-color: #e68a00; }
+        .btn-red { background-color: #cc0000; color: white; }
+        
+        input, select { width: 100%; padding: 10px; margin: 5px 0; background: var(--bg-body); border: 1px solid var(--border); color: white; box-sizing: border-box; }
+        label { font-size: 12px; color: var(--accent); text-transform: uppercase; font-weight: bold; }
+        
+        .box-split { display: flex; gap: 20px; flex-wrap: wrap; }
+        .box-half { flex: 1; min-width: 300px; }
+        
+        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 10px; }
+        .map-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border); }
+
+        h2 { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; color: var(--text-light); }
+        h3 { color: var(--accent); margin-top: 25px; border-bottom: 1px dashed var(--border); padding-bottom: 5px; }
+        ul { line-height: 1.6; }
+        .rule-sub { margin-left: 20px; font-size: 0.9em; color: #aaa; }
+        
+        .streak-fire { color: #ff5722; font-weight: bold; }
+    </style>
+</head>
+<body onload="updateMapSelectors()">
+
+    <header>
+        <h1>1v1<span>LB</span></h1>
+        <p style="margin:5px 0 0; color:var(--accent);">Black Ops 2 - Competitive Rankings</p>
+    </header>
+
+    <nav>
+        <button class="active" data-tab="leaderboard" onclick="showTab('leaderboard')">Leaderboard</button>
+        <button data-tab="matchfinder" onclick="showTab('matchfinder')">Match Finder</button>
+        <button data-tab="active" onclick="showTab('active')">Active Matches</button>
+        <button data-tab="report" onclick="showTab('report')">Report / Dispute</button>
+        <button data-tab="rules" onclick="showTab('rules')">Rules</button>
+    </nav>
+
+    <div class="container">
+        <!-- Auth Bar -->
+        <div id="user-bar">
+            <span id="user-info">Not logged in. Log in to post matches and report scores.</span>
+            <button id="auth-btn" class="btn" onclick="showTab('auth')">Login / Register</button>
+        </div>
+
+        <!-- Email verification banner (shown only to signed-in, unverified users) -->
+        <div id="verify-bar"></div>
+
+        <!-- Shows database/login problems instead of failing silently -->
+        <div id="diag"></div>
+
+        <!-- Match accepted notifications -->
+        <div id="notice"></div>
+
+        <!-- AUTH TAB -->
+        <div id="auth" class="tab">
+            <h2>Authentication</h2>
+            <div class="social-row">
+                <button class="btn btn-social btn-google" onclick="googleLogin()">Continue with Google</button>
+            </div>
+            <div class="or-line">or use a username</div>
+            <div class="box-split">
+                <div class="box-half">
+                    <h3>Log In</h3>
+                    <input type="text" id="login-email" placeholder="Username (or email)" autocomplete="username">
+                    <input type="password" id="login-pass" placeholder="Password">
+                    <button class="btn" onclick="login()" style="margin-top:10px;">Log In</button>
+                </div>
+                <div class="box-half">
+                    <h3>Register</h3>
+                    <input type="text" id="reg-gt" placeholder="Username (your PSN ID)" maxlength="24" autocomplete="username">
+                    <input type="password" id="reg-pass" placeholder="Password (6+ characters)" autocomplete="new-password">
+                    <div style="font-size:11px; color:#888; margin-bottom:4px;">No email needed. That also means no password reset, so remember your password.</div>
+                    <button class="btn" onclick="register()" style="margin-top:10px;">Create Account</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEADERBOARD TAB -->
+        <div id="leaderboard" class="tab active">
+            <h2>Global Rankings</h2>
+            <table>
+                <thead><tr>
+                    <th>Rank</th>
+                    <th>Gamertag</th>
+                    <th>Elo</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                    <th>W/L Ratio</th>
+                    <th>Streak</th>
+                </tr></thead>
+                <tbody id="lb-body">
+                    <tr><td colspan="7">Loading rankings...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- MATCH FINDER TAB -->
+        <div id="matchfinder" class="tab">
+            <h2>Match Finder</h2>
+            <div style="background: #2a2a2a; padding: 20px; margin-bottom: 20px; border-left: 3px solid var(--accent);">
+                <label style="font-size: 16px;">Post a Challenge</label>
+                
+                <div class="grid-inputs">
+                    <div>
+                        <label>Console</label>
+                        <select id="match-console">
+                            <option>Xbox</option>
+                            <option>PS4/PS5</option>
+                            <option>PC / Plutonium</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Rules / Playstyle</label>
+                        <select id="match-rules">
+                            <option>Spawntrap</option>
+                            <option>Groundgame (FFA)</option>
+                            <option>Groundgame (Hardpoint)</option>
+                            <option>Groundgame (Domination)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Series Length</label>
+                        <select id="match-series" onchange="updateMapSelectors()">
+                            <option>1 and Done</option>
+                            <option>Best of 3 (2/3)</option>
+                            <option>Best of 5 (3/5)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="map-selectors-container" class="map-grid"></div>
+
+                <button class="btn" style="width: 100%; margin-top: 15px;" onclick="postMatch()">Post Match to Board</button>
+            </div>
+
+            <div id="my-matches"></div>
+
+            <h3 style="margin-top:0;">Open Matches</h3>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead><tr>
+                        <th>Host</th>
+                        <th>Console</th>
+                        <th>Series</th>
+                        <th>Maps</th>
+                        <th>Rules</th>
+                        <th>Status</th>
+                    </tr></thead>
+                    <tbody id="mf-body">
+                        <tr><td colspan="6">Loading open matches...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ACTIVE MATCHES TAB -->
+        <div id="active" class="tab">
+            <h2>Active Matches</h2>
+            <p style="margin-bottom:10px;">Matches that have been accepted. The maps and ruleset below are what both players agreed to when the match was accepted. Play it, then report the score.</p>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead><tr>
+                        <th>Opponent</th>
+                        <th>Maps</th>
+                        <th>Ruleset</th>
+                        <th>Series</th>
+                        <th>Console</th>
+                        <th>Accepted</th>
+                        <th></th>
+                    </tr></thead>
+                    <tbody id="active-body">
+                        <tr><td colspan="7">Log in to see your active matches.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- REPORT TAB (AUTO-AGREEMENT) -->
+        <div id="report" class="tab">
+            <h2>Report Score / File Dispute</h2>
+            <p style="margin-bottom: 20px;">Report the score (e.g. 2 to 0). If you <b>lost</b>, your report counts right away and the leaderboard updates automatically. If you <b>won</b>, your opponent sees a banner at the top of the site asking them to confirm, and it updates as soon as they do. The scores don't have to match exactly (2-0 vs 2-1 is fine) as long as you both agree who won. Only if you each say you won does it go to an admin.</p>
+            
+            <label>Opponent's Gamertag</label>
+            <input type="text" id="rep-opp" placeholder="Exact Gamertag">
+            
+            <label>Report Type</label>
+            <select id="rep-type" onchange="toggleReportType()">
+                <option value="score">Report Match Score</option>
+                <option value="dispute">Direct Dispute (Opponent Cheated / Fake Setup)</option>
+            </select>
+
+            <div id="score-inputs" style="display: flex; gap: 15px; margin: 10px 0;">
+                <div style="flex: 1;">
+                    <label>My Score (Maps Won)</label>
+                    <input type="number" id="rep-my-score" min="0" placeholder="e.g. 2">
+                </div>
+                <div style="flex: 1;">
+                    <label>Opponent's Score (Maps Won)</label>
+                    <input type="number" id="rep-opp-score" min="0" placeholder="e.g. 1">
+                </div>
+            </div>
+
+            <label>Video/Picture Proof Link (YouTube/Imgur)</label>
+            <input type="url" id="rep-proof" placeholder="Optional for matching scores, REQUIRED for disputes">
+
+            <button class="btn btn-red" style="margin-top: 10px;" onclick="submitReport()">Submit Report</button>
+        </div>
+
+        <!-- RULES TAB -->
+        <div id="rules" class="tab">
+            <h2>Official Black Ops 2 Rules</h2>
+            
+            <h3>1. Gametypes & Game Settings</h3>
+            <p><strong>Health & Damage (ALL Modes):</strong> 30% Health, Normal Regen, Hit Indicator On, Headshots Only: No.<br>
+            <strong>General (ALL Modes):</strong> Scorestreaks Not Allowed, Pre-Match: 15s, Pre-Round: 5s, Auto Team Balance: Off, Team Change: Allowed, Dynamic Map Elements: Yes, 3rd Person Spectating & CODcasting: Allowed, Scorestreak Delay: Off.</p>
+            
+            <ul>
+                <li><strong>Free For All</strong>
+                    <div class="rule-sub">Time Limit: Unlimited | Score Limit: 20 Points (*Spawntrapping on Nuketown has a score limit to 50 points).</div>
+                    <div class="rule-sub">Minimap: Constant | Killcam: Disabled (Enabled if Nonspawntrapping).</div>
+                </li>
+                <li><strong>Hardpoint</strong>
+                    <div class="rule-sub">Time Limit: 5 Minutes | Score Limit: Unlimited | Teams: 2</div>
+                    <div class="rule-sub">Lifetime: 45s | Capture Time: None | Locations: Linear Order | Scoring: Constant</div>
+                    <div class="rule-sub">Minimap: Constant/Normal (Challenge Option) | Killcam: Off (Enabled if Nonspawntrapping)</div>
+                    <div class="rule-sub">Spawns: Respawn Delay: None, Force Respawn: Yes, Wave/Suicide/Team Kill Penalties: None</div>
+                </li>
+                <li><strong>Domination</strong>
+                    <div class="rule-sub">Time Limit: 5 Minutes | Score Limit: Unlimited | Teams: 2</div>
+                    <div class="rule-sub">Capture Time: 5s | Round Limit: 2 | Switch Sides: Every Round</div>
+                    <div class="rule-sub">Minimap: Constant/Normal (Challenge Option) | Killcam: Off (Enabled if Nonspawntrapping)</div>
+                    <div class="rule-sub">Spawns: Respawn Delay: None, Force Respawn: Yes, Wave/Suicide/Team Kill Penalties: None</div>
+                </li>
+            </ul>
+
+            <h3>2. Class Setup</h3>
+            <ul>
+                <li><strong>Primary:</strong> Ballista or DSR50 (Fast Mag or Extended Mag)</li>
+                <li><strong>Attachments:</strong> FMJ</li>
+                <li><strong>Perk 1:</strong> Flak Jacket</li>
+                <li><strong>Perk 2:</strong> Scavenger or Fast Hands</li>
+                <li><strong>Perk 3:</strong> Extreme Conditioning or Dead Silence</li>
+                <li><strong>Deathstreak:</strong> Not Allowed</li>
+            </ul>
+
+            <h3>3. Warnings & Illegal Actions</h3>
+            <p>For each game, players can receive up to two warnings. The second warning qualifies as a disqualification. Whether a warning or DQ is called is solely up to the victim.</p>
+            <ul>
+                <li>Incorrect rules, setup, or illegal class.</li>
+                <li>Spawning out and spawning back in / Killing yourself with ammo.</li>
+                <li>Using/throwing equipment that corrupts the game (e.g. throwing a knife into a spawn to prevent a player from spawning there).</li>
+                <li><strong>NO RING AROUND THE ROSIE FOR MORE THAN 2 MINUTES.</strong></li>
+            </ul>
+
+            <h3>4. Disqualifications (DQ)</h3>
+            <p>Disqualifications must be called immediately after an illegal action has occurred or it will be invalid. You cannot call a DQ after a match has finished (unless the action couldn't be seen during the game).</p>
+            <ul>
+                <li>Killing with an illegal setup, rules, or class.</li>
+                <li>Killing a player joining/participating in the match incorrectly.</li>
+                <li>Point Glitching (Can result in DQ or a free kill for the victim player depending on their call).</li>
+                <li>Throwing Knives.</li>
+                <li>Hardscoping, hardscope jumpshots, relapse shots.</li>
+                <li>Killing a player with explosive objects (barrels, cars) is legal ONLY if the explosion was caused by a sniper shot.</li>
+                <li>Any form of cheating (Hacking/Mods, IP Flooding/DDoS, manipulating in-game mechanics/glitching, counting bullets or assistance from a non-competing player).</li>
+            </ul>
+
+            <h3>5. Settings & Disconnections</h3>
+            <ul>
+                <li><strong>Host Responsibilities:</strong> The host must ensure correct rules. If settings are wrong, the host must end the game immediately before any action occurs, or it results in a DQ for that specific game. If a player notices settings are wrong but continues playing without notifying the host, it continues as a normal game. Refusal to end a wrongly-setup match = DQ.</li>
+                <li><strong>Disconnections:</strong> Players have 5 minutes to rejoin and contact the referee/opponent, or they forfeit that game. The game resumes with the exact scores from the disconnect (Except in objective modes, where disconnecting results in an automatic loss for that game).</li>
+            </ul>
+
+            <h3>6. Reporting & Attendance</h3>
+            <ul>
+                <li>Scores must be reported within 24 hours. If one player fails to report or dispute, the reporting player automatically receives the win.</li>
+                <li>Reporting fake wins/losses without a match occurring results in suspension.</li>
+                <li>A report that says you lost counts immediately. If both players report and agree on the winner, the win counts even if the map scores differ. If you both claim the win, an admin decides.</li>
+                <li>If a player fails to arrive, the other player must provide valid proof of absence to claim a forfeit win.</li>
+                <li>Players MUST use the exact PSN ID displayed on their 1v1LB Profile.</li>
+                <li>One account per player. Alt accounts, or playing yourself to gain points, result in a ban. Repeat matches between the same two players earn reduced Elo, and are unrated after the fourth in a week.</li>
+            </ul>
+
+            <h3>7. Disputes</h3>
+            <ul>
+                <li>If no proof or details are provided in a dispute, the win goes to the player who provided proof.</li>
+                <li>If no player submits proof or details within 5 hours of the dispute, a staff member will delete the match (no win/loss awarded).</li>
+                <li><strong>Valid Proof:</strong> Clear pictures of the final scoreboard with players visibly present, video proof of the game, or observable evidence of an in-game action. Witnesses/messages do NOT count as proof.</li>
+                <li>Reporting false disputes or fake proof results in an immediate suspension from 1v1LB.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer-link"><a onclick="connectionCheck()">Run connection check</a></div>
+    <script src="config.js"></script>
+    <script>
+        // ==========================================
+        // 1. FIREBASE
+        // ==========================================
+        // Settings come from config.js, which is generated from your private .env file (see README.md).
+        const APP = window.APP_CONFIG || {};
+        const firebaseConfig = APP.firebase;
+        if (!firebaseConfig || !firebaseConfig.apiKey) {
+            document.getElementById('diag').style.display = 'block';
+            document.getElementById('diag').innerHTML = "<b>config.js is missing.</b> Run <code>node build-config.js</code> next to index.html (it builds config.js from your .env file), and upload config.js with the site.";
+            throw new Error("config.js missing");
+        }
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        // Long polling keeps the database working through VPNs, proxies and strict networks
+        try { db.settings({ experimentalForceLongPolling: true }); } catch (e) { console.warn(e); }
+        const TS = () => firebase.firestore.FieldValue.serverTimestamp();
+
+        // ==========================================
+        // 2. SETTINGS
+        // ==========================================
+        const ELO_START = 1000;
+        const ELO_K = 32;
+
+        // Alt / self-play protection. None of it uses IP addresses, so VPNs and ad blockers are unaffected.
+        const REQUIRE_VERIFIED_EMAIL = false;       // true = must verify email before posting/accepting/reporting
+        const PAIR_WINDOW_DAYS = 7;                 // how far back "repeat opponent" looks
+        const PAIR_MULTIPLIERS = [1, 1, 0.5, 0.25]; // Elo multiplier for the 1st, 2nd, 3rd, 4th meeting in the window; 5th+ is unrated
+        const FLAG_PAIR_AT = 3;                     // flag the pairing for admins after this many earlier meetings
+        const MAX_OPEN_POSTS = 3;                   // open match posts per person (the Firestore rules enforce 3 as well)
+        const ACTIVE_VIEW_HOURS = 72;               // accepted matches stay on the Active tab this long unless the score is reported
+        const PROVISIONAL_GAMES = 5;                // opponents with fewer games than this count as "new"
+        const PROVISIONAL_MULT = 0.5;               // beating a brand-new account is worth half
+
+        // ==========================================
+        // 3. HELPERS
+        // ==========================================
+        const $ = id => document.getElementById(id);
+
+        // Escape user text before it goes into innerHTML
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+        }
+
+        // Collapses gmail dots / +tags so one mailbox can't make many accounts
+        function emailKey(email) {
+            const e = String(email || '').trim().toLowerCase();
+            const at = e.lastIndexOf('@');
+            if (at < 1) return e;
+            let local = e.slice(0, at).split('+')[0];
+            let domain = e.slice(at + 1);
+            if (domain === 'googlemail.com') domain = 'gmail.com';
+            if (domain === 'gmail.com') local = local.replace(/\./g, '');
+            return local + '@' + domain;
+        }
+
+        // A blocked or offline Firestore never errors, it just waits forever. This turns that into a visible error.
+        function withTimeout(p, ms) {
+            return Promise.race([
+                p,
+                new Promise((_, reject) => setTimeout(() => reject({ code: 'timeout', message: 'timed out' }), ms || 10000))
+            ]);
+        }
+
+        function describe(e) {
+            const code = (e && e.code) || '';
+            if (code === 'permission-denied') return "Firestore rules are blocking this. In the Firebase console go to Firestore Database > Rules, paste the rules from the firestore.rules file, and click Publish.";
+            if (code === 'timeout' || code === 'unavailable') return "Couldn't reach the database. An ad blocker or privacy extension may be blocking firestore.googleapis.com (allow it for this site), or you may be offline.";
+            if (code === 'failed-precondition' || code === 'not-found') return "Firestore may not be set up yet. In the Firebase console go to Firestore Database and click Create database. (" + ((e && e.message) || code) + ")";
+            return (code ? code + ': ' : '') + ((e && e.message) || e);
+        }
+
+        // Problems are shown in a red box at the top instead of failing silently
+        const diagMsgs = {};
+        function diag(key, html) {
+            if (html) diagMsgs[key] = html; else delete diagMsgs[key];
+            const el = $('diag');
+            const items = Object.values(diagMsgs);
+            el.style.display = items.length ? 'block' : 'none';
+            el.innerHTML = items.map(h => `<div>${h}</div>`).join('');
+        }
+        if (location.protocol === 'file:') {
+            diag('file', "<b>This page is open as a local file.</b> Logins and saving are unreliable that way. Upload it to Firebase Hosting, Netlify or GitHub Pages and open it from the https:// address.");
+        }
+
+        // ==========================================
+        // 4. TABS & SMALL UI
+        // ==========================================
+        function showTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            $(tabId).classList.add('active');
+            const navBtn = document.querySelector(`nav button[data-tab="${tabId}"]`);
+            if (navBtn) navBtn.classList.add('active');
+        }
+
+        function toggleReportType() {
+            const type = $('rep-type').value;
+            if (type === 'dispute') {
+                $('score-inputs').style.display = 'none';
+                $('rep-proof').placeholder = "REQUIRED for disputes (YouTube/Imgur)";
+            } else {
+                $('score-inputs').style.display = 'flex';
+                $('rep-proof').placeholder = "Optional for matching scores, REQUIRED for disputes";
+            }
+        }
+
+        function updateMapSelectors() {
+            const series = $('match-series').value;
+            const mapOptions = `
+                <option>Nuketown 2025</option>
+                <option>Carrier</option>
+                <option>Express</option>
+                <option>Hijacked</option>
+                <option>Plaza</option>
+                <option>Raid</option>
+                <option>Slums</option>
+                <option>Standoff</option>
+                <option>Studio</option>
+            `;
+            let mapCount = 1;
+            if (series === 'Best of 3 (2/3)') mapCount = 3;
+            if (series === 'Best of 5 (3/5)') mapCount = 5;
+            let html = '';
+            for (let i = 1; i <= mapCount; i++) {
+                html += `<div><label>${mapCount === 1 ? 'Map' : 'Map ' + i}</label><select class="map-select">${mapOptions}</select></div>`;
+            }
+            $('map-selectors-container').innerHTML = html;
+        }
+
+        // ==========================================
+        // 5. STATE
+        // ==========================================
+        let currentUser = null;
+        let profile = null;          // the signed-in user's users/{uid} document data
+        let profileLoaded = false;   // true once the database has answered
+        let profileUnsub = null;
+        let profileTimer = null;
+        let registering = false;
+        let playersCache = [];
+        let matchesCache = [];
+        let activeCache = [];
+        let pendingCache = [];
+        const gt = () => (profile && profile.gamertag) || '';
+
+        // ==========================================
+        // 6. EMAIL VERIFICATION (only if REQUIRE_VERIFIED_EMAIL is true)
+        // ==========================================
+        function requireReady(action) {
+            if (!currentUser) { alert(`You must be logged in to ${action}.`); return false; }
+            if (REQUIRE_VERIFIED_EMAIL && !currentUser.emailVerified && !isUsernameEmail(currentUser.email)) {
+                alert(`Verify your email address before you ${action}. Use the yellow banner at the top.`);
+                return false;
+            }
+            if (!gt()) {
+                alert("Set your username first using the Set username button in the top bar." + (profileLoaded ? "" : " (Your profile is still loading, try again in a second.)"));
+                return false;
+            }
+            return true;
+        }
+
+        function renderVerifyBar() {
+            const bar = $('verify-bar');
+            if (REQUIRE_VERIFIED_EMAIL && currentUser && !currentUser.emailVerified && !isUsernameEmail(currentUser.email)) {
+                bar.style.display = 'flex';
+                bar.innerHTML = `<span>Verify your email (${esc(currentUser.email)}) to post matches and report scores.</span>
+                    <span><button class="btn" onclick="sendVerification()">Send link</button>
+                    <button class="btn" onclick="refreshVerification()">I've verified</button></span>`;
+            } else {
+                bar.style.display = 'none';
+                bar.innerHTML = '';
+            }
+        }
+        async function sendVerification() {
+            try { await currentUser.sendEmailVerification(); alert("Verification email sent. Check your inbox and spam, click the link, then press \"I've verified\"."); }
+            catch (e) { alert(e.message); }
+        }
+        async function refreshVerification() {
+            try {
+                await currentUser.reload();
+                currentUser = auth.currentUser;
+                renderVerifyBar();
+                alert(currentUser.emailVerified ? "Email verified." : "Not verified yet. Click the link in the email first.");
+            } catch (e) { alert(e.message); }
+        }
+
+        // ==========================================
+        // 7. ACCOUNT & PSN
+        // ==========================================
+        function renderUserBar() {
+            const btn = $('auth-btn');
+            if (!currentUser) {
+                $('user-info').textContent = "Not logged in. Log in to post matches and report scores.";
+                btn.style.display = '';
+                btn.innerText = "Login / Register";
+                btn.onclick = () => showTab('auth');
+                return;
+            }
+            const name = gt();
+            if (name) {
+                $('user-info').innerHTML = `Logged in as: <strong style="color:var(--accent)">${esc(name)}</strong>
+                    <button class="btn" style="margin-left:10px; padding:4px 8px;" onclick="changePsn()">Change username</button>`;
+            } else if (profileLoaded) {
+                $('user-info').innerHTML = `Logged in as: <strong style="color:var(--accent)">${esc(realEmail(currentUser) || currentUser.displayName || 'your account')}</strong>
+                    <span style="color:#888">(no username set)</span>
+                    <button class="btn" style="margin-left:10px; padding:4px 8px;" onclick="changePsn()">Set username</button>`;
+            } else {
+                $('user-info').innerHTML = `Logged in as: <strong style="color:var(--accent)">${esc(hasPassword(currentUser) ? (currentUser.displayName || currentUser.email) : (realEmail(currentUser) || currentUser.displayName || 'your account'))}</strong> <span style="color:#888">(loading...)</span>`;
+            }
+            btn.style.display = 'none'; // no log out button: you stay signed in
+        }
+
+        // Stats a profile needs. Only fills what's missing, so nothing is ever reset.
+        function statDefaults(existing) {
+            const d = {};
+            if (typeof existing.elo !== 'number') d.elo = ELO_START;
+            if (typeof existing.wins !== 'number') d.wins = 0;
+            if (typeof existing.losses !== 'number') d.losses = 0;
+            if (typeof existing.streak !== 'number') d.streak = 0;
+            if (!existing.createdAt) d.createdAt = TS();
+            return d;
+        }
+
+        async function lookupPlayer(typed) {
+            const t = String(typed || '').trim();
+            if (!t) return null;
+            const lower = t.toLowerCase();
+            const cached = playersCache.find(p => (p.gamertag || '').toLowerCase() === lower);
+            if (cached) return cached;
+            const a = await withTimeout(db.collection('users').where('gamertagLower', '==', lower).limit(1).get());
+            if (!a.empty) return { uid: a.docs[0].id, ...a.docs[0].data() };
+            const b = await withTimeout(db.collection('users').where('gamertag', '==', t).limit(1).get());
+            if (!b.empty) return { uid: b.docs[0].id, ...b.docs[0].data() };
+            return null;
+        }
+
+        async function gamertagTaken(name, uid) {
+            const p = await lookupPlayer(name);
+            return !!(p && p.uid !== uid);
+        }
+
+        // Set or change your PSN any time. No limits.
+        async function changePsn() {
+            if (!currentUser) return;
+            const had = !!gt();
+            const input = prompt(had ? `Enter your new username (your PSN ID). Currently "${gt()}":` : "Enter your username (your PSN ID):");
+            if (input === null) return;
+            const name = input.trim();
+            if (!name || name === gt()) return;
+            if (name.length > 24) return alert("Username is too long (24 characters max).");
+            try {
+                if (await gamertagTaken(name, currentUser.uid)) return alert("That username is already taken.");
+                const ref = db.collection('users').doc(currentUser.uid);
+                const snap = await withTimeout(ref.get());
+                const existing = snap.exists ? snap.data() : {};
+                await withTimeout(ref.set({
+                    gamertag: name,
+                    gamertagLower: name.toLowerCase(),
+                    ...emailPart(currentUser),
+                    ...statDefaults(existing)
+                }, { merge: true }));
+                try { await currentUser.updateProfile({ displayName: name }); } catch (e) { console.error(e); }
+                alert(had ? "Username updated." : "Username saved.");
+            } catch (e) {
+                console.error(e);
+                alert("Couldn't save your username. " + describe(e));
+            }
+        }
+
+        // The PSN is also saved on the login itself (displayName). If the database record is missing, rebuild it from that.
+        let restoring = false;
+        async function restoreProfileFromAuth(user) {
+            if (restoring) return;
+            restoring = true;
+            try {
+                const name = user.displayName;
+                if (await gamertagTaken(name, user.uid)) return;
+                const ref = db.collection('users').doc(user.uid);
+                const snap = await withTimeout(ref.get());
+                const existing = snap.exists ? snap.data() : {};
+                await withTimeout(ref.set({
+                    gamertag: name,
+                    gamertagLower: name.toLowerCase(),
+                    ...emailPart(user),
+                    ...statDefaults(existing)
+                }, { merge: true }));
+            } catch (e) {
+                console.error("Couldn't restore profile:", e);
+            } finally { restoring = false; }
+        }
+
+        // Username accounts have no real email: Firebase needs one, so the username is turned into a private
+        // address on a reserved domain (.invalid can never be registered or receive mail).
+        const USERNAME_DOMAIN = 'users.1v1lb.invalid';
+        const isUsernameEmail = e => String(e || '').toLowerCase().endsWith('@' + USERNAME_DOMAIN);
+        const usernameToEmail = n => String(n).trim().toLowerCase() + '@' + USERNAME_DOMAIN;
+        const realEmail = u => (u && u.email && !isUsernameEmail(u.email)) ? u.email : '';
+        const hasPassword = u => !!u && (u.providerData || []).some(p => p.providerId === 'password');
+        const emailPart = u => realEmail(u) ? { emailKey: emailKey(u.email) } : {};
+
+        // ---- Google sign-in ----
+        // New social accounts get the same duplicate-email check as email signups, so one mailbox can't make several accounts.
+        async function finishSocialSignIn(cred) {
+            const user = cred && cred.user;
+            if (!user) return;
+            const isNew = !!(cred.additionalUserInfo && cred.additionalUserInfo.isNewUser);
+            if (isNew) {
+                registering = true;
+                try {
+                    if (user.email) {
+                        try {
+                            const dup = await withTimeout(db.collection('users').where('emailKey', '==', emailKey(user.email)).get());
+                            if (dup.docs.some(d => d.id !== user.uid)) {
+                                await user.delete();
+                                alert("An account already exists for that email address. Log in with the method you used before.");
+                                return;
+                            }
+                        } catch (e) { console.warn("Duplicate check skipped:", e); }
+                    }
+                    const ref = db.collection('users').doc(user.uid);
+                    const snap = await withTimeout(ref.get());
+                    await withTimeout(ref.set({ ...emailPart(user), ...statDefaults(snap.exists ? snap.data() : {}) }, { merge: true }));
+                } catch (e) {
+                    console.error(e);
+                    alert("You're signed in, but saving your profile failed. " + describe(e));
+                    return;
+                } finally { registering = false; renderUserBar(); }
+                showTab('leaderboard');
+                alert("Signed in! Now choose your username (your PSN ID).");
+                changePsn();
+            } else {
+                showTab('leaderboard');
+            }
+        }
+
+        function socialError(e) {
+            const code = (e && e.code) || '';
+            if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
+            if (code === 'auth/unauthorized-domain') return alert("This website's address isn't allowed for sign-in yet. In the Firebase console go to Authentication > Settings > Authorized domains and add it.");
+            if (code === 'auth/operation-not-allowed') return alert("This sign-in method isn't turned on. In the Firebase console go to Authentication > Sign-in method and enable it.");
+            if (code === 'auth/account-exists-with-different-credential') return alert("An account with that email already exists using a different sign-in method. Log in with the method you used before.");
+            if (code === 'auth/operation-not-supported-in-this-environment') return alert("Google sign-in needs the site to be opened from its https:// address, not as a file.");
+            alert((e && e.message) || "Sign-in failed.");
+        }
+
+        async function googleLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            try {
+                const cred = await auth.signInWithPopup(provider);
+                await finishSocialSignIn(cred);
+            } catch (e) {
+                if (e && e.code === 'auth/popup-blocked') return auth.signInWithRedirect(provider);
+                socialError(e);
+            }
+        }
+        // Returning from a redirect sign-in (only used if the popup was blocked)
+        auth.getRedirectResult().then(cred => { if (cred && cred.user) finishSocialSignIn(cred); }).catch(socialError);
+
+        auth.onAuthStateChanged(user => {
+            if (profileUnsub) { profileUnsub(); profileUnsub = null; }
+            clearTimeout(profileTimer);
+            currentUser = user;
+            profile = null;
+            profileLoaded = false;
+            diag('profile', ''); diag('write', '');
+            restartDataListeners(); // listeners start only after the saved login is restored
+            renderVerifyBar();
+            renderUserBar();
+            if (!user) return;
+
+            profileTimer = setTimeout(() => {
+                if (!profileLoaded) diag('profile', "Couldn't load your profile. " + describe({ code: 'timeout' }));
+            }, 10000);
+
+            profileUnsub = db.collection('users').doc(user.uid).onSnapshot(doc => {
+                if (!doc.exists && doc.metadata.fromCache) return; // not confirmed by the server yet, keep waiting
+                profileLoaded = true;
+                clearTimeout(profileTimer);
+                diag('profile', '');
+                profile = doc.exists ? doc.data() : {};
+                if (profile.gamertag) {
+                    if (user.displayName !== profile.gamertag) user.updateProfile({ displayName: profile.gamertag }).catch(() => {});
+                } else if (user.displayName && hasPassword(user) && !registering) {
+                    restoreProfileFromAuth(user); // PSN already on the account: rebuild the record, don't ask again
+                }
+                renderUserBar();
+            }, err => {
+                clearTimeout(profileTimer);
+                console.error("Profile load error:", err);
+                diag('profile', "Couldn't load your profile. " + describe(err));
+            });
+
+            // Write test on every login: also fills in the email key for older accounts
+            withTimeout(db.collection('users').doc(user.uid).set({ ...emailPart(user), lastSeen: TS() }, { merge: true }))
+                .then(() => diag('write', ''))
+                .catch(e => diag('write', "<b>Saving to the database is failing.</b> " + describe(e)));
+        });
+
+        // Sign up with just a username and password
+        async function register() {
+            const name = $('reg-gt').value.trim();
+            const pass = $('reg-pass').value;
+            if (!/^[A-Za-z0-9_-]{3,24}$/.test(name)) return alert("Username must be 3 to 24 characters: letters, numbers, - or _ (no spaces).");
+            if (pass.length < 6) return alert("Password must be at least 6 characters.");
+
+            registering = true;
+            try {
+                let cred;
+                try { cred = await auth.createUserWithEmailAndPassword(usernameToEmail(name), pass); }
+                catch (err) {
+                    if (err.code === 'auth/email-already-in-use') return alert("That username is already taken.");
+                    if (err.code === 'auth/weak-password') return alert("Pick a stronger password (6+ characters).");
+                    return alert(err.message);
+                }
+
+                try { await cred.user.updateProfile({ displayName: name }); } catch (e) { console.error(e); }
+
+                // Someone may already be using this name as their PSN (for example through Google sign-in)
+                try {
+                    if (await gamertagTaken(name, cred.user.uid)) {
+                        await cred.user.delete();
+                        return alert("That username is already taken.");
+                    }
+                } catch (e) { console.warn("Name check skipped:", e); }
+
+                try {
+                    await withTimeout(db.collection('users').doc(cred.user.uid).set({
+                        gamertag: name, gamertagLower: name.toLowerCase(),
+                        elo: ELO_START, wins: 0, losses: 0, streak: 0,
+                        createdAt: TS()
+                    }, { merge: true }));
+                } catch (e) {
+                    console.error(e);
+                    return alert("Your login was created, but saving your profile failed. " + describe(e));
+                }
+
+                alert("Account created! Welcome to 1v1LB, " + name + ".");
+                showTab('leaderboard');
+            } finally {
+                registering = false;
+                renderUserBar();
+            }
+        }
+
+        // Log in with a username, or an email for older accounts
+        function login() {
+            const id = $('login-email').value.trim();
+            const pass = $('login-pass').value;
+            if (!id || !pass) return alert("Enter your username and password.");
+            const email = id.includes('@') ? id : usernameToEmail(id);
+            auth.signInWithEmailAndPassword(email, pass)
+                .then(() => showTab('leaderboard'))
+                .catch(err => {
+                    const c = err.code || '';
+                    if (c === 'auth/user-not-found' || c === 'auth/wrong-password' || c === 'auth/invalid-credential' || c === 'auth/invalid-login-credentials' || c === 'auth/invalid-email')
+                        return alert("Wrong username or password.");
+                    alert(err.message);
+                });
+        }
+
+        // ==========================================
+        // 8. LIVE LISTS (leaderboard + match finder)
+        // ==========================================
+        let lbUnsub = null, mfUnsub = null, actUnsub = null, pndUnsub = null;
+        function restartDataListeners() {
+            if (lbUnsub) { lbUnsub(); lbUnsub = null; }
+            if (mfUnsub) { mfUnsub(); mfUnsub = null; }
+            if (actUnsub) { actUnsub(); actUnsub = null; }
+            if (pndUnsub) { pndUnsub(); pndUnsub = null; }
+            lbUnsub = startLeaderboard();
+            mfUnsub = startMatchFinder();
+            actUnsub = startActive();
+            pndUnsub = startPending();
+        }
+
+        function startLeaderboard() {
+            return db.collection('users').onSnapshot(snapshot => {
+                playersCache = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
+                refreshMatches();
+                const players = playersCache
+                    .filter(p => p.gamertag)
+                    .map(x => ({ ...x, elo: typeof x.elo === 'number' ? x.elo : ELO_START, wins: x.wins || 0, losses: x.losses || 0 }));
+                players.sort((a, b) => b.elo - a.elo || b.wins - a.wins);
+
+                let html = "";
+                players.slice(0, 50).forEach((p, i) => {
+                    let wl = "0.00";
+                    if (p.losses === 0 && p.wins > 0) wl = p.wins.toFixed(2);
+                    else if (p.wins > 0 || p.losses > 0) wl = (p.wins / p.losses).toFixed(2);
+                    const s = p.streak || 0;
+                    html += `<tr>
+                        <td>#${i + 1}</td>
+                        <td style="color:var(--accent); font-weight:bold;">${esc(p.gamertag)}</td>
+                        <td style="color:var(--text-light); font-weight:bold;">${p.elo}</td>
+                        <td style="color:#00e676;">${p.wins}</td>
+                        <td style="color:#ff1744;">${p.losses}</td>
+                        <td>${wl}</td>
+                        <td>${s >= 3 ? `<span class="streak-fire">🔥 ${s}</span>` : s}</td>
+                    </tr>`;
+                });
+                $('lb-body').innerHTML = html || '<tr><td colspan="7">No players yet.</td></tr>';
+            }, err => {
+                console.error("Leaderboard error:", err);
+                $('lb-body').innerHTML = `<tr><td colspan="7" style="color:#ff1744">Couldn't load rankings. ${esc(describe(err))}</td></tr>`;
+            });
+        }
+
+        // Current username for a player (so a name change shows up on their old posts too)
+        function liveName(uid, fallback) {
+            const p = playersCache.find(x => x.uid === uid);
+            return (p && p.gamertag) || fallback;
+        }
+        // Your post. Older posts that have no hostUid are matched by name.
+        function isMine(m) {
+            return !!currentUser && (m.hostUid === currentUser.uid || (!m.hostUid && !!gt() && m.host === gt()));
+        }
+        function refreshMatches() { renderMatchBoard(); renderMyMatches(); renderActive(); renderNotices(); }
+
+        function renderMatchBoard() {
+            // The public board only shows matches nobody has accepted yet
+            const open = matchesCache.filter(m => !m.acceptedByUid);
+            let html = "";
+            open.forEach(m => {
+                html += `<tr>
+                    <td style="color:var(--accent); font-weight:bold;">${esc(liveName(m.hostUid, m.host))}</td>
+                    <td>${esc(m.console)}</td>
+                    <td>${esc(m.series)}</td>
+                    <td style="max-width:200px; line-height:1.4;">${esc(m.maps)}</td>
+                    <td>${esc(m.rules)}</td>
+                    <td>${isMine(m)
+                        ? `<button class="btn btn-red" onclick="removeMatch('${esc(m.id)}')">Cancel</button>`
+                        : `<button class="btn" onclick="acceptMatch('${esc(m.id)}')">Accept</button>`}</td>
+                </tr>`;
+            });
+            $('mf-body').innerHTML = html || '<tr><td colspan="6">No open matches right now.</td></tr>';
+        }
+
+        function startMatchFinder() {
+            return db.collection('matches').onSnapshot(snapshot => {
+                matchesCache = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                const ms = d => (d.createdAt && d.createdAt.toMillis) ? d.createdAt.toMillis() : Date.now(); // pending writes have no timestamp yet
+                matchesCache.sort((a, b) => ms(b) - ms(a));
+
+                renderMatchBoard();
+                renderMyMatches();
+                renderNotices();
+            }, err => {
+                console.error("Match finder error:", err);
+                $('mf-body').innerHTML = `<tr><td colspan="6" style="color:#ff1744">Couldn't load matches. ${esc(describe(err))}</td></tr>`;
+            });
+        }
+
+        // Your open posts. You can cancel them until someone accepts.
+        function renderMyMatches() {
+            const box = $('my-matches');
+            if (!currentUser) { box.innerHTML = ''; return; }
+            const mine = matchesCache.filter(m => isMine(m) && !m.acceptedByUid);
+            if (!mine.length) { box.innerHTML = ''; return; }
+            let html = `<div class="my-matches"><h3>Your Open Matches (${mine.length}/${MAX_OPEN_POSTS})</h3>`;
+            mine.forEach(m => {
+                html += `<div class="row"><span>Waiting for an opponent: ${esc(m.series)} on ${esc(m.console)}, ${esc(m.rules)} (${esc(m.maps)})</span>
+                    <button class="btn btn-red btn-small" onclick="removeMatch('${esc(m.id)}')">Cancel match</button></div>`;
+            });
+            box.innerHTML = html + '</div>';
+        }
+
+        // ---- Active (accepted) matches ----
+        const tsMs = t => (t && t.toMillis) ? t.toMillis() : Date.now(); // a just-written timestamp is null until the server answers
+        function activeVisible(m) {
+            return !m.completed && (Date.now() - tsMs(m.acceptedAt)) < ACTIVE_VIEW_HOURS * 3600000;
+        }
+
+        function startActive() {
+            if (!currentUser) { activeCache = []; renderActive(); renderNotices(); return null; }
+            return db.collection('active_matches').where('players', 'array-contains', currentUser.uid).onSnapshot(snap => {
+                activeCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderActive();
+                renderNotices();
+            }, err => {
+                console.error("Active matches error:", err);
+                $('active-body').innerHTML = `<tr><td colspan="7" style="color:#ff1744">Couldn't load active matches. ${esc(describe(err))}</td></tr>`;
+            });
+        }
+
+        function renderActive() {
+            const body = $('active-body');
+            if (!currentUser) { body.innerHTML = '<tr><td colspan="7">Log in to see your active matches.</td></tr>'; return; }
+            const rows = activeCache.filter(activeVisible).sort((a, b) => tsMs(b.acceptedAt) - tsMs(a.acceptedAt));
+            let html = '';
+            rows.forEach(m => {
+                const iHost = m.hostUid === currentUser.uid;
+                const opp = iHost ? liveName(m.acceptedByUid, m.acceptedBy) : liveName(m.hostUid, m.host);
+                const parts = String(m.maps || '').split(' / ');
+                const maps = parts.map((x, i) => esc(parts.length > 1 ? `Map ${i + 1}: ${x}` : x)).join('<br>');
+                html += `<tr>
+                    <td style="color:var(--accent); font-weight:bold;">${esc(opp)}</td>
+                    <td style="line-height:1.5;">${maps}</td>
+                    <td>${esc(m.rules)}</td>
+                    <td>${esc(m.series)}</td>
+                    <td>${esc(m.console)}</td>
+                    <td style="font-size:12px; color:#aaa;">${m.acceptedAt && m.acceptedAt.toMillis ? esc(new Date(m.acceptedAt.toMillis()).toLocaleString()) : 'just now'}</td>
+                    <td><button class="btn btn-small" onclick="goReport('${esc(opp)}')">Report score</button></td>
+                </tr>`;
+            });
+            body.innerHTML = html || '<tr><td colspan="7">No active matches. Accept one from the Match Finder, or wait for someone to accept yours.</td></tr>';
+        }
+
+        // Score reports other players filed against you that are waiting for your answer
+        function startPending() {
+            if (!currentUser) { pendingCache = []; renderNotices(); return null; }
+            return db.collection('pending_reports').where('opponentUid', '==', currentUser.uid).onSnapshot(snap => {
+                pendingCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderNotices();
+            }, err => console.error("Pending reports error:", err));
+        }
+
+        // Banners on every tab: a player reported beating you, or someone accepted your match
+        function renderNotices() {
+            const box = $('notice');
+            if (!currentUser) { box.innerHTML = ''; document.title = document.title.replace(/^\(\d+\) /, ''); return; }
+
+            // Only reports where the other player says THEY won, and only for 24 hours
+            const waiting = pendingCache.filter(p => p.myScore > p.oppScore && tsMs(p.timestamp) > Date.now() - 24 * 3600000);
+            const accepted = activeCache.filter(m => m.hostUid === currentUser.uid && m.hostSeen === false);
+
+            const pendingHtml = waiting.map(p => {
+                const who = liveName(p.reporterUid, p.reporter);
+                return `<div class="note pending">
+                    <span><b>${esc(who)}</b> reported that they beat you <b>${esc(p.myScore)}-${esc(p.oppScore)}</b>. Is that right? Confirm it, or report the score yourself.</span>
+                    <span>
+                        <button class="btn btn-small" onclick="confirmPending('${esc(p.id)}')">Confirm I lost</button>
+                        <button class="btn btn-red btn-small" onclick="goReport('${esc(who)}')">Report score / dispute</button>
+                    </span>
+                </div>`;
+            }).join('');
+
+            const acceptedHtml = accepted.map(m => `<div class="note">
+                <span><b>${esc(liveName(m.acceptedByUid, m.acceptedBy))}</b> accepted your ${esc(m.series)} match on ${esc(m.console)} (${esc(m.rules)}, ${esc(m.maps)}). Message them on ${esc(m.console)} to start! See the Active Matches tab.</span>
+                <button class="btn btn-small" onclick="dismissNotice('${esc(m.id)}')">Got it</button>
+            </div>`).join('');
+
+            box.innerHTML = pendingHtml + acceptedHtml;
+            const count = waiting.length + accepted.length;
+            const base = document.title.replace(/^\(\d+\) /, '');
+            document.title = count ? `(${count}) ${base}` : base;
+        }
+
+        // One click: you agree you lost, using the score the other player reported
+        async function confirmPending(id) {
+            const p = pendingCache.find(x => x.id === id);
+            if (!p) return;
+            if (!requireReady('confirm a report')) return;
+            const who = liveName(p.reporterUid, p.reporter);
+            if (!confirm(`Confirm that ${who} beat you ${p.myScore}-${p.oppScore}? This records your loss.`)) return;
+            try {
+                const oppPlayer = playersCache.find(x => x.uid === p.reporterUid) || await lookupPlayer(p.reporter);
+                if (!oppPlayer || !oppPlayer.gamertag) return alert("Couldn't find that player.");
+                await resolveMatch(oppPlayer, p.oppScore, p.myScore,
+                    { ref: db.collection('pending_reports').doc(id) },
+                    { scoreText: `${p.myScore}-${p.oppScore}` });
+            } catch (e) {
+                console.error(e);
+                alert("Couldn't confirm that report. " + describe(e));
+            }
+        }
+
+        async function dismissNotice(matchId) {
+            try { await withTimeout(db.collection('active_matches').doc(matchId).update({ hostSeen: true })); }
+            catch (e) { console.error(e); alert("Couldn't dismiss that. " + describe(e)); }
+        }
+
+        function goReport(oppName) {
+            $('rep-opp').value = oppName;
+            showTab('report');
+        }
+
+        // ==========================================
+        // 9. MATCH FINDER ACTIONS
+        // ==========================================
+        // Each person gets 3 post "slots" (their uid + _1, _2, _3). That is how the Firestore rules enforce the limit of 3.
+        async function postMatch() {
+            if (!requireReady('post a match')) return;
+            const openMine = matchesCache.filter(m => isMine(m) && !m.acceptedByUid);
+            if (openMine.length >= MAX_OPEN_POSTS) {
+                return alert(`You already have ${MAX_OPEN_POSTS} open matches. Cancel one or wait for someone to accept before posting another.`);
+            }
+            const taken = new Set(matchesCache.map(m => m.id));
+            let slotId = null;
+            for (let n = 1; n <= MAX_OPEN_POSTS; n++) {
+                if (!taken.has(`${currentUser.uid}_${n}`)) { slotId = `${currentUser.uid}_${n}`; break; }
+            }
+            if (!slotId) return alert(`You already have ${MAX_OPEN_POSTS} open matches. Cancel one first.`);
+
+            const maps = [];
+            document.querySelectorAll('.map-select').forEach(s => maps.push(s.value));
+            try {
+                await withTimeout(db.collection('matches').doc(slotId).set({
+                    host: gt(),
+                    hostUid: currentUser.uid,
+                    console: $('match-console').value,
+                    rules: $('match-rules').value,
+                    series: $('match-series').value,
+                    maps: maps.join(' / '),
+                    createdAt: TS()
+                }));
+                alert("Match posted to the board! You'll get a notice when someone accepts it. You can cancel it until then.");
+            } catch (e) {
+                console.error(e);
+                alert(e && e.code === 'permission-denied'
+                    ? "Your match was NOT saved. You may already have 3 open matches, or the Firestore rules need updating (see firestore.rules)."
+                    : "Your match was NOT saved. " + describe(e));
+            }
+        }
+
+        // Accepting moves the post into active_matches (with the agreed maps and ruleset) in one transaction,
+        // so two people can't both accept it and it can no longer be cancelled.
+        async function acceptMatch(matchId) {
+            if (!requireReady('accept a match')) return;
+            const ref = db.collection('matches').doc(matchId);
+            const activeRef = db.collection('active_matches').doc(matchId);
+            try {
+                let info = null;
+                await withTimeout(db.runTransaction(async tx => {
+                    const snap = await tx.get(ref);
+                    if (!snap.exists) throw new Error("This match is no longer available. The host may have cancelled it, or someone else accepted it.");
+                    const d = snap.data();
+                    if (d.acceptedByUid) throw new Error("Someone else already accepted this match.");
+                    const hostUid = d.hostUid || ((playersCache.find(p => p.gamertag === d.host) || {}).uid);
+                    if (!hostUid) throw new Error("Couldn't identify the host of this older post. Ask them to cancel and repost it.");
+                    if (hostUid === currentUser.uid || d.host === gt()) throw new Error("You can't accept your own match.");
+                    tx.set(activeRef, {
+                        host: d.host, hostUid: hostUid,
+                        acceptedBy: gt(), acceptedByUid: currentUser.uid,
+                        players: [hostUid, currentUser.uid],
+                        console: d.console, rules: d.rules, series: d.series, maps: d.maps,
+                        acceptedAt: TS(), hostSeen: false, completed: false
+                    });
+                    tx.delete(ref);
+                    info = d;
+                }), 15000);
+                alert(`Match accepted! ${info.host} has been notified.\n\nMaps: ${info.maps}\nRuleset: ${info.rules}\n\nMessage them on ${info.console} to start. It's now on your Active Matches tab.`);
+                showTab('active');
+            } catch (e) {
+                console.error(e);
+                alert("Couldn't accept this match. " + describe(e));
+            }
+        }
+
+        // The host can delete a match until someone accepts it
+        async function removeMatch(matchId) {
+            if (!currentUser) return;
+            const m = matchesCache.find(x => x.id === matchId);
+            if (!m) return alert("This match is no longer on the board. If someone accepted it, it can't be cancelled.");
+            if (!confirm("Cancel your match and remove it from the board?")) return;
+            try { await withTimeout(db.collection('matches').doc(matchId).delete()); }
+            catch (e) {
+                console.error(e);
+                alert(e && e.code === 'permission-denied'
+                    ? "Couldn't cancel it. Someone may have just accepted it, or the Firestore rules need updating (see firestore.rules)."
+                    : "Couldn't cancel the match. " + describe(e));
+            }
+        }
+
+        // ==========================================
+        // 10. SCORE REPORTING (both players must agree)
+        // ==========================================
+        // Decides what a new report does. pend is the opponent's waiting report (their own myScore/oppScore) or null.
+        //   'auto-loss' you reported your own loss: counts immediately
+        //   'wait'      you reported a win and nobody has confirmed yet
+        //   'agree'     both reports name the same winner (the map scores may differ): counts
+        //   'dispute'   both say they won, or both say they lost: goes to an admin
+        function judgeReports(myScore, oppScore, pend) {
+            const iWon = myScore > oppScore;
+            if (!pend) return iWon ? 'wait' : 'auto-loss';
+            const oppWon = pend.myScore > pend.oppScore;
+            return iWon !== oppWon ? 'agree' : 'dispute';
+        }
+
+        async function submitReport() {
+            if (!requireReady('report a score')) return;
+            try {
+                const oppPlayer = await lookupPlayer($('rep-opp').value);
+                if (!oppPlayer || !oppPlayer.gamertag) return alert("No player found with that PSN. Check the spelling.");
+                if (oppPlayer.uid === currentUser.uid) return alert("You cannot report a match against yourself.");
+                const opp = oppPlayer.gamertag;
+                const me = gt();
+                const type = $('rep-type').value;
+                const proof = $('rep-proof').value.trim();
+
+                if (type === 'dispute') {
+                    if (!proof) return alert("You MUST provide a video/picture proof link to file a direct dispute.");
+                    await withTimeout(db.collection('reports').add({
+                        type: 'Direct Dispute',
+                        submitter: me, submitterUid: currentUser.uid,
+                        opponent: opp, opponentUid: oppPlayer.uid,
+                        proof: proof,
+                        timestamp: TS()
+                    }));
+                    return alert("Dispute submitted. An Admin will review the evidence.");
+                }
+
+                const myScore = parseInt($('rep-my-score').value);
+                const oppScore = parseInt($('rep-opp-score').value);
+                if (isNaN(myScore) || isNaN(oppScore)) return alert("Please enter valid numbers for the scores.");
+                if (myScore === oppScore) return alert("Matches cannot end in a tie.");
+
+                const pairKey = [currentUser.uid, oppPlayer.uid].sort().join('_');
+
+                // Did the opponent already report against me? (reports older than 24 hours are ignored)
+                const theirsSnap = await withTimeout(db.collection('pending_reports')
+                    .where('reporter', '==', opp).where('opponent', '==', me).get());
+                const theirs = theirsSnap.docs.filter(d => tsMs(d.data().timestamp) > Date.now() - 24 * 3600000);
+                const oppDoc = theirs[0] || null;
+                const verdict = judgeReports(myScore, oppScore, oppDoc ? oppDoc.data() : null);
+
+                if (verdict === 'auto-loss') {
+                    // You're reporting your own loss. Nobody has a reason to lie about that, so it counts right away.
+                    return await resolveMatch(oppPlayer, myScore, oppScore, null,
+                        { auto: true, scoreText: `${oppScore}-${myScore}` });
+                }
+
+                if (verdict === 'wait') {
+                    // I'm claiming a win. Did my opponent already report their loss within the last hour?
+                    const prev = await withTimeout(db.collection('match_results').where('pairKey', '==', pairKey).get());
+                    const rec = prev.docs.map(d => d.data())
+                        .filter(r => r.autoLoss && r.timestamp && tsMs(r.timestamp) > Date.now() - 3600000)
+                        .sort((a, b) => tsMs(b.timestamp) - tsMs(a.timestamp))[0];
+                    if (rec && rec.winnerUid === currentUser.uid) {
+                        return alert("Your opponent already reported that you won, so it's recorded and there's nothing more to do. (If this was a different match, ask them to report their loss.)");
+                    }
+                    if (rec && rec.loserUid === currentUser.uid) {
+                        return alert("You already reported a loss for this match. If that was a mistake, file a Direct Dispute with proof.");
+                    }
+
+                    // Replace my own earlier report against this opponent instead of stacking duplicates
+                    const mine = await withTimeout(db.collection('pending_reports')
+                        .where('reporter', '==', me).where('opponent', '==', opp).get());
+                    const data = {
+                        reporter: me, reporterUid: currentUser.uid,
+                        opponent: opp, opponentUid: oppPlayer.uid,
+                        myScore: myScore, oppScore: oppScore,
+                        timestamp: TS()
+                    };
+                    if (mine.empty) await withTimeout(db.collection('pending_reports').add(data));
+                    else await withTimeout(mine.docs[0].ref.set(data));
+                    return alert("Win reported! Your opponent will see a banner asking them to confirm. It updates as soon as they do.");
+                }
+
+                const oppData = oppDoc.data();
+                if (verdict === 'agree') {
+                    // Both agree on the winner. Map scores can differ (2-0 vs 2-1) and the win still counts.
+                    const hi = Math.max(myScore, oppScore), lo = Math.min(myScore, oppScore);
+                    const theirHi = Math.max(oppData.myScore, oppData.oppScore), theirLo = Math.min(oppData.myScore, oppData.oppScore);
+                    const same = hi === theirHi && lo === theirLo;
+                    await resolveMatch(oppPlayer, myScore, oppScore, oppDoc,
+                        { scoreText: same ? `${hi}-${lo}` : `${hi}-${lo} (opponent reported ${theirHi}-${theirLo})` });
+                } else {
+                    // Both say they won (or both say they lost): an admin has to decide
+                    await withTimeout(db.collection('reports').add({
+                        type: myScore > oppScore ? 'Both Players Claim The Win' : 'Both Players Claim The Loss',
+                        player1: me, player1Uid: currentUser.uid,
+                        p1_claims_my_score: myScore, p1_claims_opp_score: oppScore,
+                        player2: opp, player2Uid: oppPlayer.uid,
+                        p2_claims_my_score: oppData.myScore, p2_claims_opp_score: oppData.oppScore,
+                        timestamp: TS()
+                    }));
+                    await withTimeout(oppDoc.ref.delete());
+                    alert("You and your opponent each reported that you won, so this match was sent to an admin to review.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Your report was NOT saved. " + describe(e));
+            }
+        }
+
+        // Both players agreed. Apply Elo with protection against alt/self-play farming.
+        async function resolveMatch(oppPlayer, myScore, oppScore, oppDoc, opts) {
+            opts = opts || {};
+            const me = { uid: currentUser.uid, gt: gt() };
+            const them = { uid: oppPlayer.uid, gt: oppPlayer.gamertag };
+            const iWon = myScore > oppScore;
+            const winner = iWon ? me : them;
+            const loser = iWon ? them : me;
+            const winRef = db.collection('users').doc(winner.uid);
+            const loseRef = db.collection('users').doc(loser.uid);
+
+            // How many times have these two already played in the last week?
+            const pairKey = [me.uid, them.uid].sort().join('_');
+            const since = Date.now() - PAIR_WINDOW_DAYS * 86400000;
+            const prev = await withTimeout(db.collection('match_results').where('pairKey', '==', pairKey).get());
+            const recent = prev.docs.filter(d => { const t = d.data().timestamp; return t && t.toMillis() >= since; }).length;
+            const pairMult = recent < PAIR_MULTIPLIERS.length ? PAIR_MULTIPLIERS[recent] : 0;
+
+            const out = {};
+            await withTimeout(db.runTransaction(async tx => {
+                const [w, l, pend] = await Promise.all([tx.get(winRef), tx.get(loseRef), oppDoc ? tx.get(oppDoc.ref) : Promise.resolve(null)]);
+                if (oppDoc && !pend.exists) throw new Error("This report was already processed.");
+                if (!w.exists || !l.exists) throw new Error("Couldn't find both players' accounts, so nothing was counted.");
+                const wd = w.data(), ld = l.data();
+                const wElo = typeof wd.elo === 'number' ? wd.elo : ELO_START;
+                const lElo = typeof ld.elo === 'number' ? ld.elo : ELO_START;
+
+                const expectedWin = 1 / (1 + Math.pow(10, (lElo - wElo) / 400));
+                const base = ELO_K * (1 - expectedWin);
+                const loserGames = (ld.wins || 0) + (ld.losses || 0);
+                const newAcctMult = loserGames < PROVISIONAL_GAMES ? PROVISIONAL_MULT : 1;
+                const mult = pairMult * newAcctMult;
+                const rated = pairMult > 0;
+                const delta = rated ? Math.max(1, Math.round(base * mult)) : 0;
+                const newWinElo = wElo + delta;
+                const newLoseElo = Math.max(0, lElo - delta);
+
+                if (rated) {
+                    tx.update(winRef, { wins: (wd.wins || 0) + 1, streak: (wd.streak || 0) + 1, elo: newWinElo });
+                    tx.update(loseRef, { losses: (ld.losses || 0) + 1, streak: 0, elo: newLoseElo });
+                }
+                // Always log it so repeat pairings keep counting toward the weekly cap
+                tx.set(db.collection('match_results').doc(), {
+                    pairKey: pairKey,
+                    winnerUid: winner.uid, loserUid: loser.uid,
+                    winnerGt: winner.gt, loserGt: loser.gt,
+                    score: opts.scoreText || `${Math.max(myScore, oppScore)}-${Math.min(myScore, oppScore)}`,
+                    autoLoss: !!opts.auto, reportedBy: currentUser.uid,
+                    rated: rated, delta: delta, multiplier: mult,
+                    timestamp: TS()
+                });
+                if (oppDoc) tx.delete(oppDoc.ref);
+                Object.assign(out, { delta, newWinElo, newLoseElo, rated, mult, newAcctMult });
+            }), 15000);
+
+            // Take the match off the Active tab now that its score has been agreed
+            try {
+                const done = activeCache
+                    .filter(m => !m.completed && (m.players || []).includes(me.uid) && (m.players || []).includes(them.uid))
+                    .sort((a, b) => tsMs(a.acceptedAt) - tsMs(b.acceptedAt))[0];
+                if (done) await withTimeout(db.collection('active_matches').doc(done.id).update({ completed: true, completedAt: TS() }));
+            } catch (e) { console.error("Couldn't close active match:", e); }
+
+            if (recent >= FLAG_PAIR_AT) {
+                try {
+                    await withTimeout(db.collection('reports').add({
+                        type: 'Suspicious Pairing - Repeat Opponents',
+                        player1: me.gt, player1Uid: me.uid,
+                        player2: them.gt, player2Uid: them.uid,
+                        matchesThisWeek: recent + 1,
+                        timestamp: TS()
+                    }));
+                } catch (e) { console.error("Couldn't flag pairing:", e); }
+            }
+
+            if (!out.rated) {
+                alert(`${opts.auto ? 'Your loss was reported, but' : 'Both players agree on the winner, but'} you two have already played ${recent} rated matches in the last ${PAIR_WINDOW_DAYS} days. This one doesn't count toward Elo. Play someone else to climb!`);
+            } else {
+                let note = "";
+                if (out.mult < 1) note = (out.newAcctMult < 1 && pairMult === 1) ? " (reduced: opponent is a new account)" : " (reduced: repeat opponent this week)";
+                alert(`${opts.auto ? 'Your loss is recorded!' : 'Both players agree on the winner!'} ${winner.gt} +${out.delta} Elo (${out.newWinElo}), ${loser.gt} -${out.delta} Elo (${out.newLoseElo}).${note}`);
+            }
+        }
+
+        // ==========================================
+        // 11. CONNECTION CHECK (footer link)
+        // ==========================================
+        async function connectionCheck() {
+            const lines = [];
+            lines.push(location.protocol === 'file:' ? "Page: opened as a local file (not recommended)" : "Page: served over " + location.protocol.replace(':', '') + " OK");
+            lines.push(currentUser ? "Login: signed in as " + (realEmail(currentUser) || currentUser.displayName || 'your account') : "Login: not signed in");
+            try {
+                await withTimeout(db.collection('matches').limit(1).get(), 8000);
+                lines.push("Database read: OK");
+            } catch (e) { lines.push("Database read: FAILED. " + describe(e)); }
+            if (currentUser) {
+                try {
+                    await withTimeout(db.collection('users').doc(currentUser.uid).set({ lastSeen: TS() }, { merge: true }), 8000);
+                    lines.push("Database write: OK");
+                } catch (e) { lines.push("Database write: FAILED. " + describe(e)); }
+            } else {
+                lines.push("Database write: log in first to test this");
+            }
+            alert(lines.join("\n\n"));
+        }
+
+    </script>
+</body>
+</html>
